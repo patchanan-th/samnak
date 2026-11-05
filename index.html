@@ -477,7 +477,7 @@
                 body: JSON.stringify(newRecord)
             }).catch(err => console.log('Cloud Sync Error:', err));
 
-            // แสดงหน้าต่างเด้งตรงกลางจอ (Modal) แทน alert แบบเดิม
+            // แสดงหน้าต่างเด้งตรงกลางจอ (Modal)
             document.getElementById('successModal').classList.remove('hidden');
             resetForm();
         }
@@ -539,7 +539,7 @@
             }
         }
 
-        // ฟังก์ชันดึงข้อมูลสดจาก Google Sheets อย่างรวดเร็ว
+        // ฟังก์ชันดึงข้อมูลสดจาก Google Sheets มาแสดงผล (GET)
         function loadDataFromSheet() {
             const emptyNotice = document.getElementById('emptyTableNotice');
             if (emptyNotice) {
@@ -557,7 +557,7 @@
                     }
                 })
                 .catch(err => {
-                    console.log('Using local records due to network error');
+                    console.log('Using local records due to network error', err);
                     renderAdminView();
                 });
         }
