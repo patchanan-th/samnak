@@ -200,31 +200,18 @@
         <!-- VIEW 2: BACKEND ADMIN DASHBOARD -->
         <div id="backendView" class="hidden space-y-6">
             
-            <!-- Admin Apps Script Configuration Box -->
-            <div class="soft-card p-5 bg-white border border-rose-200">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-xs font-bold text-rose-900 flex items-center gap-2 uppercase tracking-wide">
-                        <i class="fa-solid fa-link text-rose-600"></i>
-                        การตั้งค่าการเชื่อมต่อ Google Sheets (Web App URL)
-                    </h3>
-                    <span class="text-[10px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-mono">Integration</span>
-                </div>
+            <!-- Dashboard Sub Tabs -->
+            <div class="flex border-b border-rose-200 gap-2 justify-between items-center">
                 <div class="flex gap-2">
-                    <input type="text" id="scriptUrlInput" placeholder="วางลิงก์ Web App URL ที่ได้จาก Google Apps Script ที่นี่..." class="flex-1 px-3 py-2 bg-rose-50/30 border border-rose-300 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-500">
-                    <button onclick="saveScriptUrl()" class="px-4 py-2 bg-rose-800 text-white text-xs font-semibold rounded-xl hover:bg-rose-900 transition-all shadow-2xs">
-                        บันทึก URL
+                    <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" class="tab-btn active px-4 py-2.5 rounded-t-xl text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-chart-pie mr-1.5"></i> แดชบอร์ดสรุปผล
+                    </button>
+                    <button onclick="switchAdminTab('table')" id="tab-table" class="tab-btn bg-white text-rose-800 border border-rose-200 px-4 py-2.5 rounded-t-xl text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-table-list mr-1.5"></i> ตารางรายการข้อมูลทั้งหมด (<span id="dataCountBadge">0</span>)
                     </button>
                 </div>
-                <p class="text-[11px] text-gray-500 mt-1.5">* หากใส่ URL ไว้ ข้อมูลที่ถูกกรอกจากหน้าบ้านจะถูกส่งตรงไปบันทึกใน Google Sheets ของท่านทันที</p>
-            </div>
-
-            <!-- Dashboard Sub Tabs -->
-            <div class="flex border-b border-rose-200 gap-2">
-                <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" class="tab-btn active px-4 py-2.5 rounded-t-xl text-xs font-semibold transition-all">
-                    <i class="fa-solid fa-chart-pie mr-1.5"></i> แดชบอร์ดสรุปผล
-                </button>
-                <button onclick="switchAdminTab('table')" id="tab-table" class="tab-btn bg-white text-rose-800 border border-rose-200 px-4 py-2.5 rounded-t-xl text-xs font-semibold transition-all">
-                    <i class="fa-solid fa-table-list mr-1.5"></i> ตารางรายการข้อมูลทั้งหมด (<span id="dataCountBadge">0</span>)
+                <button onclick="loadDataFromSheet()" class="px-3 py-1.5 bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all mb-2">
+                    <i class="fa-solid fa-rotate"></i> โหลดข้อมูลล่าสุดจาก Sheet
                 </button>
             </div>
 
@@ -364,8 +351,26 @@
         </div>
     </div>
 
+    <!-- SUCCESS POPUP MODAL (แจ้งเตือนบันทึกสำเร็จกลางจอ) -->
+    <div id="successModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="soft-card bg-white p-6 w-full max-w-sm rounded-2xl shadow-2xl text-center space-y-4 animate-bounce-short">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-inner">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-rose-900">บันทึกข้อมูลสำเร็จ!</h3>
+                <p class="text-xs text-gray-500 mt-1">ระบบได้บันทึกความต้องการของคุณเรียบร้อยแล้วครับ</p>
+            </div>
+            <button onclick="closeSuccessModal()" class="w-full py-2.5 bg-rose-700 text-white rounded-xl font-semibold text-xs hover:bg-rose-800 transition-all shadow-md">
+                ตกลง
+            </button>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT LOGIC -->
     <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzt15Qb8iu10Dloh8Wzu9zfmMm0Dhxzz1VIJPOv8LyWpYTjoDeoGwfFhS8kfc4h_073/exec';
+
         const thaiProvinces = [
             "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", 
             "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", 
@@ -392,17 +397,9 @@
         let categoryChartInstance = null;
         let provinceChartInstance = null;
 
-        const mockRecords = [
-            { id: 1, timestamp: '2026-11-01 09:30', fullname: 'นายสมชาย ใจดี', position: 'นักวิเคราะห์นโยบายและแผน', department: 'สำนักปลัดเทศบาล', topic: 'นวัตกรรมและบริการดิจิทัลภาครัฐ (e-Office/Big Data)', category: CATEGORIES.DIGITAL, province: 'เชียงใหม่', suggestion: 'อยากดูงานระบบเอกสารอิเล็กทรอนิกส์ต้นแบบ' },
-            { id: 2, timestamp: '2026-11-02 11:15', fullname: 'นางสาววิภาดา รักษ์ดี', position: 'นักจัดการงานทั่วไป', department: 'สำนักปลัดเทศบาล', topic: 'ศูนย์บริการเบ็ดเสร็จ (One Stop Service)', category: CATEGORIES.DIGITAL, province: 'ภูเก็ต', suggestion: 'ศึกษาการให้บริการประชาชนจุดเดียว' },
-            { id: 3, timestamp: '2026-11-02 14:20', fullname: 'นายประเสริฐ ยั่งยืน', position: 'ผู้อำนวยการกองช่าง', department: 'กองช่าง', topic: 'การบริหารจัดการขยะมูลฝอยและสิ่งแวดล้อม', category: CATEGORIES.ENVIRONMENT, province: 'ระยอง', suggestion: 'ดูโรงงานกำจัดขยะแปรรูปเป็นพลังงาน' },
-            { id: 4, timestamp: '2026-11-03 10:00', fullname: 'นางสาวสุภาพร ชูใจ', position: 'นักวิชาการศึกษา', department: 'กองการศึกษา', topic: 'การบริหารจัดการโรงเรียนท้องถิ่นและศูนย์พัฒนาเด็กเล็ก', category: CATEGORIES.QUALITY_OF_LIFE, province: 'ขอนแก่น', suggestion: 'ดูศูนย์พัฒนาเด็กเล็กต้นแบบ' }
-        ];
-
         document.addEventListener('DOMContentLoaded', () => {
             populateProvinceDropdown();
             loadStoredRecords();
-            loadStoredScriptUrl();
         });
 
         function populateProvinceDropdown() {
@@ -419,24 +416,8 @@
             const stored = localStorage.getItem('study_tour_records_v4');
             if (stored) {
                 records = JSON.parse(stored);
-            } else {
-                records = [...mockRecords];
-                localStorage.setItem('study_tour_records_v4', JSON.stringify(records));
             }
             updateDataBadges();
-        }
-
-        function loadStoredScriptUrl() {
-            const storedUrl = localStorage.getItem('google_script_url');
-            if (storedUrl) {
-                document.getElementById('scriptUrlInput').value = storedUrl;
-            }
-        }
-
-        function saveScriptUrl() {
-            const url = document.getElementById('scriptUrlInput').value.trim();
-            localStorage.setItem('google_script_url', url);
-            alert('บันทึก Web App URL เรียบร้อยแล้ว!');
         }
 
         function selectTopic(text) {
@@ -483,26 +464,26 @@
                 suggestion: suggestion || '-'
             };
 
-            // อัปเดตข้อมูลในหน่วยความจำและบันทึกลง LocalStorage
+            // อัปเดตรวดเร็วในเครื่องทันที
             records.unshift(newRecord);
             localStorage.setItem('study_tour_records_v4', JSON.stringify(records));
-
             updateDataBadges();
 
-            // กำหนด Web App URL ตรงนี้แบบถาวร เพื่อให้ส่งข้อมูลเข้า Google Sheets ได้ทันที
-            const scriptUrl = 'https://script.google.com/macros/s/AKfycbzt15Qb8iu10Dloh8Wzu9zfmMm0Dhxzz1VIJPOv8LyWpYTjoDeoGwfFhS8kfc4h_073/exec';
-            
-            if (scriptUrl) {
-                fetch(scriptUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newRecord)
-                }).catch(err => console.log('Cloud Sync Error:', err));
-            }
+            // ส่งข้อมูลไปบันทึกใน Google Sheets เบื้องหลังแบบไม่ให้ติดขัด
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRecord)
+            }).catch(err => console.log('Cloud Sync Error:', err));
 
-            alert('บันทึกความต้องการเรียบร้อยแล้ว ขอบคุณสำหรับข้อมูลครับ');
+            // แสดงหน้าต่างเด้งตรงกลางจอ (Modal) แทน alert แบบเดิม
+            document.getElementById('successModal').classList.remove('hidden');
             resetForm();
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
         }
 
         function resetForm() {
@@ -548,12 +529,37 @@
                 frontend.classList.add('hidden');
                 backend.classList.remove('hidden');
                 btnText.textContent = 'กลับสู่หน้าแบบฟอร์ม (Front)';
-                renderAdminView();
+                
+                // โหลดข้อมูลล่าสุดจาก Google Sheets ทันทีที่เปิดหน้า Admin
+                loadDataFromSheet();
             } else {
                 backend.classList.add('hidden');
                 frontend.classList.remove('hidden');
                 btnText.textContent = 'เข้าสู่ระบบหลังบ้าน (Admin)';
             }
+        }
+
+        // ฟังก์ชันดึงข้อมูลสดจาก Google Sheets อย่างรวดเร็ว
+        function loadDataFromSheet() {
+            const emptyNotice = document.getElementById('emptyTableNotice');
+            if (emptyNotice) {
+                emptyNotice.innerText = 'กำลังซิงค์ข้อมูลล่าสุดจาก Google Sheets...';
+                emptyNotice.classList.remove('hidden');
+            }
+
+            fetch(SCRIPT_URL)
+                .then(res => res.json())
+                .then(response => {
+                    if (response.result === 'success' && response.data) {
+                        records = response.data;
+                        localStorage.setItem('study_tour_records_v4', JSON.stringify(records));
+                        renderAdminView();
+                    }
+                })
+                .catch(err => {
+                    console.log('Using local records due to network error');
+                    renderAdminView();
+                });
         }
 
         function switchAdminTab(tab) {
@@ -688,6 +694,7 @@
             tbody.innerHTML = '';
 
             if (records.length === 0) {
+                emptyNotice.textContent = 'ยังไม่มีข้อมูลในระบบ';
                 emptyNotice.classList.remove('hidden');
                 return;
             } else {
