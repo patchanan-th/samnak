@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสำรวจความต้องการศึกษาดูงาน</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (xlsx) for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rose: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                        },
+                        muted: {
+                            rose: '#a36773',
+                            pink: '#eddcdb',
+                            dark: '#543b40',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #fcf8f8;
+            color: #543b40;
+        }
+        .desktop-container {
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+        .soft-card {
+            background: #ffffff;
+            border: 1px solid #f3e5e7;
+            box-shadow: 0 4px 20px rgba(163, 103, 115, 0.04);
+            border-radius: 16px;
+        }
+        .tab-btn.active {
+            background-color: #be123c;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-10">
+
+    <div class="desktop-container px-4">
+        
+        <!-- Header -->
+        <header class="soft-card p-6 mb-8 flex flex-col sm:flex-row justify-between items-center bg-white border-t-4 border-t-rose-700 gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-rose-900 flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    ระบบสำรวจความต้องการศึกษาดูงาน
+                </h1>
+                <p class="text-xs text-muted-rose mt-1 ml-12">แบบสำรวจความต้องการและข้อเสนอแนะในการจัดโครงการศึกษาดูงานประจำปีงบประมาณ 2570</p>
+            </div>
+            <div>
+                <button id="viewToggleBtn" onclick="toggleView()" class="px-4 py-2.5 bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span id="viewToggleText">เข้าสู่ระบบหลังบ้าน (Admin)</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- VIEW 1: FRONTEND USER FORM -->
+        <div id="frontendView" class="space-y-6">
+            
+            <div class="soft-card p-8 md:p-10 max-w-3xl mx-auto bg-white">
+                <div class="mb-8 pb-4 border-b border-rose-100 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-rose-900 flex items-center gap-2">
+                            <i class="fa-regular fa-pen-to-square text-rose-600"></i>
+                            กรอกข้อมูลความต้องการศึกษาดูงาน
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-0.5">โปรดกรอกข้อมูลให้ครบถ้วนเพื่อประโยชน์ในการรวบรวมและวิเคราะห์โครงการ</p>
+                    </div>
+                    <span class="text-[11px] bg-rose-50 text-rose-700 px-3 py-1 rounded-full font-medium border border-rose-100">
+                        <i class="fa-solid fa-asterisk text-[9px] mr-0.5"></i> จำเป็นต้องกรอก
+                    </span>
+                </div>
+
+                <form id="surveyForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                    
+                    <!-- Section 1: Personal Info -->
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-muted-rose uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-tag"></i> 1. ข้อมูลส่วนบุคคลและสังกัด
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">ชื่อ - สกุล <span class="text-rose-600">*</span></label>
+                                <input type="text" id="fullname" required placeholder="เช่น นายสมชาย ใจดี" class="w-full px-3.5 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white text-xs transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">ตำแหน่ง <span class="text-rose-600">*</span></label>
+                                <input type="text" id="position" required placeholder="เช่น นักวิเคราะห์นโยบายและแผน" class="w-full px-3.5 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white text-xs transition-all">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">สังกัด / กอง <span class="text-rose-600">*</span></label>
+                                <select id="department" required class="w-full px-3.5 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white text-xs transition-all">
+                                    <option value="" disabled selected>-- เลือกสังกัด / กอง --</option>
+                                    <option value="สำนักปลัด">สำนักปลัด</option>
+                                    <option value="กองคลัง">กองคลัง</option>
+                                    <option value="กองช่าง">กองช่าง</option>
+                                    <option value="กองสาธารณสุข">กองสาธารณสุข</option>
+                                    <option value="กองการศึกษา">กองการศึกษา</option>
+                                    <option value="หน่วยตรวจสอบภายใน">หน่วยตรวจสอบภายใน</option>
+                                    <option value="คณะผู้บริหาร">คณะผู้บริหาร</option>
+                                    <option value="หัวหน้าส่วนราชการ">หัวหน้าส่วนราชการ</option>
+                                    <option value="สมาชิกสภา">สมาชิกสภา</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">จังหวัดที่ต้องการไปศึกษาดูงาน <span class="text-rose-600">*</span></label>
+                                <select id="province" required class="w-full px-3.5 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white text-xs transition-all">
+                                    <option value="" disabled selected>-- เลือกจังหวัด --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-rose-100 my-2">
+
+                    <!-- Section 2: Study Tour Content -->
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-muted-rose uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-compass"></i> 2. ประเด็นและข้อเสนอแนะ
+                        </h3>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5">เรื่องที่ต้องการศึกษาดูงาน <span class="text-rose-600">*</span></label>
+                            <input type="text" id="topic" required placeholder="ระบุเรื่องหรือหมวดหมู่ที่สนใจศึกษาดูงาน" class="w-full px-3.5 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white text-xs transition-all mb-3">
+                            
+                            <!-- Quick Select Chips -->
+                            <div class="bg-rose-50/60 p-3.5 rounded-xl border border-rose-100">
+                                <span class="text-[11px] font-bold text-rose-900 block mb-2 flex items-center gap-1">
+                                    <i class="fa-solid fa-lightbulb text-amber-500"></i> หัวข้อการศึกษาดูงานตัวอย่าง (คลิกเพื่อเลือกด่วน):
+                                </span>
+                                <div class="flex flex-wrap gap-1.5" id="topicChips">
+                                    <button type="button" onclick="selectTopic(this.innerText)" class="text-[11px] bg-white text-gray-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 px-3 py-1 rounded-lg transition-all shadow-2xs">นวัตกรรมและบริการดิจิทัลภาครัฐ (e-Office/Big Data)</button>
+                                    <button type="button" onclick="selectTopic(this.innerText)" class="text-[11px] bg-white text-gray-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 px-3 py-1 rounded-lg transition-all shadow-2xs">ศูนย์บริการเบ็ดเสร็จ (One Stop Service)</button>
+                                    <button type="button" onclick="selectTopic(this.innerText)" class="text-[11px] bg-white text-gray-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 px-3 py-1 rounded-lg transition-all shadow-2xs">ธรรมาภิบาลและการประเมิน (ITA / LPA)</button>
+                                    <button type="button" onclick="selectTopic(this.innerText)" class="text-[11px] bg-white text-gray-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 px-3 py-1 rounded-lg transition-all shadow-2xs">การบริหารจัดการขยะมูลฝอยและสิ่งแวดล้อม</button>
+                                    <button type="button" onclick="selectTopic(this.innerText)" class="text-[11px] bg-white text-gray-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 px-3 py-1 rounded-lg transition-all shadow-2xs">การพัฒนาคุณภาพชีวิตและศูนย์ดูแลผู้สูงอายุ (LTC)</button>
+                                    <button type="button" onclick="selectTopic(this.innerText)" class="text-[11px] bg-white text-gray-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 px-3 py-1 rounded-lg transition-all shadow-2xs">การบริหารจัดการโรงเรียนท้องถิ่นและศูนย์พัฒนาเด็กเล็ก</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5">ข้อเสนอแนะ / ความคิดเห็นเพิ่มเติม</label>
+                            <textarea id="suggestion" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม หรือสถานที่เฉพาะเจาะจงที่เสนอแนะ..." class="w-full px-3.5 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white text-xs transition-all"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button type="submit" class="flex-1 py-3 bg-rose-700 text-white rounded-xl font-semibold text-xs hover:bg-rose-800 transition-all shadow-md flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> บันทึกข้อมูลความต้องการ
+                        </button>
+                        <button type="button" onclick="resetForm()" class="px-5 py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold text-xs hover:bg-gray-200 transition-all">
+                            ล้างฟอร์ม
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- VIEW 2: BACKEND ADMIN DASHBOARD -->
+        <div id="backendView" class="hidden space-y-6">
+            
+            <!-- Dashboard Sub Tabs -->
+            <div class="flex flex-wrap border-b border-rose-200 gap-2 justify-between items-center">
+                <div class="flex gap-2">
+                    <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" class="tab-btn active px-4 py-2.5 rounded-t-xl text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-chart-pie mr-1.5"></i> แดชบอร์ดสรุปผล
+                    </button>
+                    <button onclick="switchAdminTab('table')" id="tab-table" class="tab-btn bg-white text-rose-800 border border-rose-200 px-4 py-2.5 rounded-t-xl text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-table-list mr-1.5"></i> ตารางรายการข้อมูลทั้งหมด (<span id="dataCountBadge">0</span>)
+                    </button>
+                    <button onclick="switchAdminTab('checking')" id="tab-checking" class="tab-btn bg-white text-rose-800 border border-rose-200 px-4 py-2.5 rounded-t-xl text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-clipboard-check mr-1.5"></i> ตรวจสอบการส่งรายบุคคล
+                    </button>
+                </div>
+                <button onclick="loadDataFromSheet()" class="px-3 py-1.5 bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all mb-2">
+                    <i class="fa-solid fa-rotate"></i> โหลดข้อมูลล่าสุดจาก Sheet
+                </button>
+            </div>
+
+            <!-- SUB TAB 1: DASHBOARD ANALYTICS -->
+            <div id="adminDashboardSection" class="space-y-6">
+                
+                <!-- KPI Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="soft-card p-5 border-l-4 border-l-rose-700 flex items-center justify-between bg-white">
+                        <div>
+                            <div class="text-xs font-medium text-muted-rose">จำนวนผู้ตอบแบบสำรวจทั้งหมด</div>
+                            <div class="text-2xl font-bold text-rose-900 mt-1" id="kpiTotal">0 คน</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-base">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+
+                    <div class="soft-card p-5 border-l-4 border-l-rose-500 flex items-center justify-between bg-white">
+                        <div>
+                            <div class="text-xs font-medium text-muted-rose">หมวดหมู่เรื่องที่สนใจอันดับ 1</div>
+                            <div class="text-xs font-bold text-rose-900 mt-1 truncate max-w-[200px]" id="kpiTopCategory">-</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-base">
+                            <i class="fa-solid fa-lightbulb"></i>
+                        </div>
+                    </div>
+
+                    <div class="soft-card p-5 border-l-4 border-l-rose-400 flex items-center justify-between bg-white">
+                        <div>
+                            <div class="text-xs font-medium text-muted-rose">จังหวัดยอดนิยมอันดับ 1</div>
+                            <div class="text-xl font-bold text-rose-900 mt-1" id="kpiTopProvince">-</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-base">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Chart 1: Categories -->
+                    <div class="soft-card p-6 bg-white">
+                        <h3 class="text-xs font-bold text-rose-900 mb-4 pb-2 border-b border-rose-100 flex items-center justify-between uppercase tracking-wide">
+                            <span><i class="fa-solid fa-chart-bar text-rose-700 mr-1.5"></i> สรุปตามหมวดหมู่เรื่องที่สนใจ</span>
+                            <span class="text-[11px] font-normal text-gray-500">(จัดหมวดหมู่อัตโนมัติ)</span>
+                        </h3>
+                        <div class="relative h-[260px]">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Top Provinces -->
+                    <div class="soft-card p-6 bg-white">
+                        <h3 class="text-xs font-bold text-rose-900 mb-4 pb-2 border-b border-rose-100 flex items-center justify-between uppercase tracking-wide">
+                            <span><i class="fa-solid fa-ranking-star text-rose-700 mr-1.5"></i> อันดับจังหวัดที่ได้รับความสนใจสูงสุด</span>
+                            <span class="text-[11px] font-normal text-gray-500">( Top 5 )</span>
+                        </h3>
+                        <div class="relative h-[260px]">
+                            <canvas id="provinceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SUB TAB 2: DATA TABLE -->
+            <div id="adminTableSection" class="hidden space-y-4">
+                
+                <!-- Table Controls -->
+                <div class="soft-card p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-white">
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="ค้นหาชื่อ, ตำแหน่ง, สังกัด, จังหวัด..." class="w-full md:w-72 px-3.5 py-2 bg-rose-50/30 border border-rose-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-400">
+                    </div>
+                    
+                    <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                        <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-all flex items-center gap-1.5 shadow-2xs">
+                            <i class="fa-solid fa-file-excel"></i> ส่งออกไฟล์ Excel (.xlsx)
+                        </button>
+                        <button onclick="clearAllData()" class="px-3 py-2 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold hover:bg-rose-100 transition-all">
+                            <i class="fa-solid fa-trash-can"></i> ล้างข้อมูล
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="soft-card overflow-hidden bg-white">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-gray-700" id="dataTable">
+                            <thead class="bg-rose-50 text-rose-900 border-b border-rose-200">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold w-12 text-center">#</th>
+                                    <th class="px-4 py-3 font-bold">วันเวลาที่บันทึก</th>
+                                    <th class="px-4 py-3 font-bold">ชื่อ - สกุล</th>
+                                    <th class="px-4 py-3 font-bold">ตำแหน่ง</th>
+                                    <th class="px-4 py-3 font-bold">สังกัด / กอง</th>
+                                    <th class="px-4 py-3 font-bold">เรื่องที่ต้องการศึกษาดูงาน</th>
+                                    <th class="px-4 py-3 font-bold">หมวดหมู่</th>
+                                    <th class="px-4 py-3 font-bold">จังหวัด</th>
+                                    <th class="px-4 py-3 font-bold">ข้อเสนอแนะ</th>
+                                    <th class="px-4 py-3 font-bold w-16 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-rose-100">
+                                <!-- Table rows populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="emptyTableNotice" class="hidden p-8 text-center text-gray-400 text-xs">
+                        ยังไม่มีข้อมูลในระบบ
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SUB TAB 3: CHECKING INDIVIDUAL STATUS -->
+            <div id="adminCheckingSection" class="hidden space-y-4">
+                <div class="soft-card p-5 bg-white space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-rose-900 flex items-center gap-2">
+                                <i class="fa-solid fa-user-check text-rose-700"></i> ตรวจสอบสถานะการส่งแบบสำรวจรายบุคคลแยกตามกอง
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-0.5">เปรียบเทียบรายชื่อบุคลากรและผู้บริหารทั้ง 73 ท่านในฐานข้อมูลกับผู้ที่ส่งแบบสำรวจแล้ว</p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <select id="filterDeptSelect" onchange="renderCheckingTable()" class="px-3.5 py-2 bg-rose-50/30 border border-rose-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-400">
+                                <option value="ALL">-- ทุกสังกัด / กองทั้งหมด --</option>
+                                <option value="สำนักปลัด">สำนักปลัด</option>
+                                <option value="กองคลัง">กองคลัง</option>
+                                <option value="กองช่าง">กองช่าง</option>
+                                <option value="กองสาธารณสุข">กองสาธารณสุข</option>
+                                <option value="กองการศึกษา">กองการศึกษา</option>
+                                <option value="หน่วยตรวจสอบภายใน">หน่วยตรวจสอบภายใน</option>
+                                <option value="คณะผู้บริหาร">คณะผู้บริหาร</option>
+                                <option value="หัวหน้าส่วนราชการ">หัวหน้าส่วนราชการ</option>
+                                <option value="สมาชิกสภา">สมาชิกสภา</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Summary By Dept Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="deptSummaryCards">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Checking Table -->
+                <div class="soft-card overflow-hidden bg-white">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-gray-700">
+                            <thead class="bg-rose-50 text-rose-900 border-b border-rose-200">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold w-12 text-center">#</th>
+                                    <th class="px-4 py-3 font-bold">ชื่อ - สกุล (ฐานข้อมูลเทศบาลตำบลฉลุง)</th>
+                                    <th class="px-4 py-3 font-bold">สังกัด / กอง</th>
+                                    <th class="px-4 py-3 font-bold">ตำแหน่ง</th>
+                                    <th class="px-4 py-3 font-bold text-center">สถานะการส่ง</th>
+                                    <th class="px-4 py-3 font-bold">เวลาที่ส่ง / รายละเอียด</th>
+                                </tr>
+                            </thead>
+                            <tbody id="checkingTableBody" class="divide-y divide-rose-100">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="loginModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="soft-card bg-white p-6 w-full max-w-sm rounded-2xl shadow-xl">
+            <h3 class="text-base font-bold text-rose-900 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-lock text-rose-700"></i> เข้าสู่ระบบหลังบ้าน
+            </h3>
+            <p class="text-xs text-gray-500 mb-4">โปรดใส่รหัสผ่านผู้ดูแลระบบเพื่อเข้าจัดการข้อมูล</p>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">รหัสผ่าน (Password)</label>
+                    <input type="password" id="adminPassword" required class="w-full px-3.5 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
+                </div>
+                <div class="flex gap-2 justify-end pt-1">
+                    <button type="button" onclick="closeLoginModal()" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 bg-rose-700 text-white rounded-xl text-xs font-semibold hover:bg-rose-800">เข้าสู่ระบบ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SUCCESS POPUP MODAL -->
+    <div id="successModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="soft-card bg-white p-6 w-full max-w-sm rounded-2xl shadow-2xl text-center space-y-4 animate-bounce-short">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-inner">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-rose-900">บันทึกข้อมูลสำเร็จ!</h3>
+                <p class="text-xs text-gray-500 mt-1">ระบบได้บันทึกความต้องการของคุณเรียบร้อยแล้วครับ</p>
+            </div>
+            <button onclick="closeSuccessModal()" class="w-full py-2.5 bg-rose-700 text-white rounded-xl font-semibold text-xs hover:bg-rose-800 transition-all shadow-md">
+                ตกลง
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzt15Qb8iu10Dloh8Wzu9zfmMm0Dhxzz1VIJPOv8LyWpYTjoDeoGwfFhS8kfc4h_073/exec';
+
+        // ฐานข้อมูลรายชื่อพนักงานและผู้บริหารทั้ง 73 ท่านจากเทศบาลตำบลฉลุง
+        const masterStaffList = [
+            // คณะผู้บริหาร
+            { fullname: "นายไพฑูรย์ ลิ่มสกุล", department: "คณะผู้บริหาร", position: "นายกเทศมนตรี" },
+            { fullname: "นางสาวเญาวนา วงศ์ชวลิต", department: "คณะผู้บริหาร", position: "รองนายกเทศมนตรี" },
+            { fullname: "นายดีน อาหลัง", department: "คณะผู้บริหาร", position: "รองนายกเทศมนตรี" },
+            { fullname: "นางสาวสุณี หมาดมานัง", department: "คณะผู้บริหาร", position: "เลขานุการนายกเทศมนตรี" },
+            { fullname: "นายชารีฟ หลังปูเต๊ะ", department: "คณะผู้บริหาร", position: "ที่ปรึกษานายกเทศมนตรี" },
+            
+            // หัวหน้าส่วนราชการ
+            { fullname: "นายอนุรักษ์ บัวตูม", department: "หัวหน้าส่วนราชการ", position: "ปลัดเทศบาล" },
+            { fullname: "นางสาวสุชาดา ยาหยาหมัน", department: "หัวหน้าส่วนราชการ", position: "รองปลัดเทศบาล" },
+            
+            // สมาชิกสภา
+            { fullname: "นางกลอยใจ ศรีคำหอม", department: "สมาชิกสภา", position: "ประธานสภาเทศบาล" },
+            { fullname: "นายธีรพงษ์ กั้วพานิช", department: "สมาชิกสภา", position: "รองประธานสภาเทศบาล" },
+            { fullname: "นายกันต์ธนวุฒิ แซ่ตัน", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นายอัมพร แซ่เอี๊ยบ", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นางสาวทิพย์วิมล ไชยสุวรรณ", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นายประดิษฐ์ เขียนงาม", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นางสาวจงกล ยี่สุ่นศรี", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นางผุสดี จันทร์มี", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นางสาวยาวาเรียะ มะมนัง", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นายสมาด ดำพิลา", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นางสาวจันทร์เพ็ญ แสงจันทร์", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+            { fullname: "นายธเรศ อังสุธรรม", department: "สมาชิกสภา", position: "สมาชิกสภาเทศบาล" },
+
+            // สำนักปลัด
+            { fullname: "นางสาวชาณิตา ม่องเร๊ะ", department: "สำนักปลัด", position: "หัวหน้าสำนักปลัดเทศบาล" },
+            { fullname: "นางสาวอารม ล่ำประไพ", department: "สำนักปลัด", position: "นักทรัพยากรบุคคล" },
+            { fullname: "นางสาวนุศรา สมายุทธพงศ์", department: "สำนักปลัด", position: "นักวิเคราะห์นโยบายและแผน" },
+            { fullname: "นางสาวสุไรด้า แหละปานแก้ว", department: "สำนักปลัด", position: "เจ้าพนักงานธุรการ" },
+            { fullname: "นายบรรณรต ผิวเหลือง", department: "สำนักปลัด", position: "นิติกรปฏิบัติการ" },
+            { fullname: "นางสาวสุภลักษณ์ ชอบแต่ง", department: "สำนักปลัด", position: "เจ้าพนักงานทะเบียนและบัตร" },
+            { fullname: "นายไพรัชฐ์ ผิวเหลือง", department: "สำนักปลัด", position: "พนง.ขับเครื่องจักรขนาดเบา" },
+            { fullname: "นายชาตรี กั่วพานิช", department: "สำนักปลัด", position: "พนง. ดับเพลิง" },
+            { fullname: "นายสุภกิจ กั่วพานิช", department: "สำนักปลัด", position: "พนักงานขับรถยนต์" },
+            { fullname: "นายเสกสรร ผิวเหลือง", department: "สำนักปลัด", position: "พนักงานขับรถยนต์" },
+            { fullname: "นายจักรพันธ์ ศิริขันตยกุล", department: "สำนักปลัด", position: "ผู้ช่วยนักพัฒนาชุมชน" },
+            { fullname: "นางสาวจิราพร พงศ์พิทักษ์", department: "สำนักปลัด", position: "ผู้ช่วยนักประชาสัมพันธ์" },
+            { fullname: "นายอนันต์ หมาดเต๊ะ", department: "สำนักปลัด", position: "คนงาน" },
+
+            // หน่วยตรวจสอบภายใน
+            { fullname: "นางกชพรรณ มณีโชติ", department: "หน่วยตรวจสอบภายใน", position: "นักวิชาการตรวจสอบภายใน" },
+
+            // กองสาธารณสุข
+            { fullname: "นางสาวนิสากร บุญช่วย", department: "กองสาธารณสุข", position: "ผู้อำนวยการกองสธารณสุขและสิ่งแวดล้อม" },
+            { fullname: "นางสาวนิธิวดี กั่วพานิช", department: "กองสาธารณสุข", position: "ผู้ช่วยเจ้าพนักงานธุรการ" },
+            { fullname: "นายสุวิทย์ ตราชู", department: "กองสาธารณสุข", position: "คนงานประจำรถขยะ" },
+            { fullname: "นายสมยศ พลประสิทธิ์", department: "กองสาธารณสุข", position: "คนงานประจำรถขยะ" },
+            { fullname: "นายถนัด ซังเอียด", department: "กองสาธารณสุข", position: "คนงาน" },
+            { fullname: "นายอุดมศักดิ์ พลประสิทธิ์", department: "กองสาธารณสุข", position: "คนงาน" },
+
+            // กองช่าง
+            { fullname: "นายยุทธนา หลงหา", department: "กองช่าง", position: "ผู้อำนวยการกองช่าง" },
+            { fullname: "นายอดุลย์ มาลีเด็น", department: "กองช่าง", position: "คนงานตกแต่งสวน" },
+            { fullname: "นายโอภาส พริกชู", department: "กองช่าง", position: "ผู้ช่วยนายช่างโยธา" },
+            { fullname: "นางสาวฉันทพิชญา ธรรมวาโร", department: "กองช่าง", position: "ผู้ช่วยเจ้าพนักงานธุรการ" },
+            { fullname: "นายอิสมาแอล เต๊ะหลี", department: "กองช่าง", position: "คนงานตกแต่งสวน (ผู้มีทักษะ)" },
+            { fullname: "นายสมเกียรติ น่าดี", department: "กองช่าง", position: "คนงาน" },
+            { fullname: "นายสมใจ บัวงาม", department: "กองช่าง", position: "คนงาน" },
+            { fullname: "นายอับดุลรอหมาน หมาดมานัง", department: "กองช่าง", position: "คนงาน" },
+            { fullname: "นายเฉลิมศักดิ์ รัตตพันธ์", department: "กองช่าง", position: "คนงาน" },
+
+            // กองคลัง
+            { fullname: "นางณฐกร แพงพิมล", department: "กองคลัง", position: "ผู้อำนวยการกองคลัง" },
+            { fullname: "นางพาชื่น สุกเกษม", department: "กองคลัง", position: "หัวหน้าฝ่ายพัสดุและทรัพย์สิน" },
+            { fullname: "นางมารีย๊ะ เล่งเจะ", department: "กองคลัง", position: "หัวหน้าฝ่ายพัฒนารายได้" },
+            { fullname: "นางณัฐกฤตา รัตนโอภาส", department: "กองคลัง", position: "เจ้าพนักงานพัสดุ" },
+            { fullname: "นางสาวอามีน๊ะ บุญช่วย", department: "กองคลัง", position: "นักวิชาการเงินและบัญชี" },
+            { fullname: "นางจิราวรรณ กั้วพานิช", department: "กองคลัง", position: "ผู้ช่วยนักวิชาการจัดเก็บรายได้" },
+            { fullname: "นายสำสูเด็น นังปุเลา", department: "กองคลัง", position: "ผู้ช่วยนายช่างสำรวจ" },
+
+            // กองการศึกษา
+            { fullname: "นางสาวปิยวรรณ แสงจันทร์", department: "กองการศึกษา", position: "ผู้อำนวยการกองการศึกษา" },
+            { fullname: "นางสุภาพร จิตต์ภักดี", department: "กองการศึกษา", position: "หัวหน้าฝ่ายแผนงานและโครงการ" },
+            { fullname: "นางสาวปริญญา คงแก้ว", department: "กองการศึกษา", position: "เจ้าพนักงานธุรการ" },
+            { fullname: "นางสาวรอรำล๊ะ หมาดสา", department: "กองการศึกษา", position: "ครู" },
+            { fullname: "นางสาวเนลดี รอมาตี", department: "กองการศึกษา", position: "ครู" },
+            { fullname: "นางศนิตา กูจิ", department: "กองการศึกษา", position: "ครู" },
+            { fullname: "นางสาวอิลฮาม หมาดดาเร๊ะ", department: "กองการศึกษา", position: "ครู" },
+            { fullname: "นายวุฒิชัย ยาปาก", department: "กองการศึกษา", position: "ผู้ช่วยนักสันทนาการ" },
+            { fullname: "นางสาวสุภาวดี เหตุหมัน", department: "กองการศึกษา", position: "ผู้ดูแลเด็ก" },
+            { fullname: "นางชารีฟ๊ะฮ์ นารอยี", department: "กองการศึกษา", position: "ผู้ดูแลเด็ก" },
+            { fullname: "นางสุฮัยณี นารอยี", department: "กองการศึกษา", position: "ผู้ดูแลเด็ก" },
+            { fullname: "นางสาวอัสมา นาปาเลน", department: "กองการศึกษา", position: "ผู้ดูแลเด็ก" },
+            { fullname: "นางสาวรุจิรา เถาวัลย์", department: "กองการศึกษา", position: "ผู้ดูแลเด็ก" },
+            { fullname: "นางสาวพนิดา นารอยี", department: "กองการศึกษา", position: "ผู้ดูแลเด็ก" },
+            { fullname: "นางสาวสุหลัยดา หมัดสะเด็น", department: "กองการศึกษา", position: "ผู้ดูแลเด็ก" }
+        ];
+
+        const thaiProvinces = [
+            "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", 
+            "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", 
+            "นครปฐม", "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", 
+            "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", 
+            "พะเยา", "พังงา", "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", 
+            "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", 
+            "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ", 
+            "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", 
+            "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี"
+        ];
+
+        const CATEGORIES = {
+            DIGITAL: "นวัตกรรมและบริการดิจิทัลภาครัฐ",
+            GOVERNANCE: "ธรรมาภิบาลและการมีส่วนร่วม (ITA/LPA)",
+            QUALITY_OF_LIFE: "การพัฒนาคุณภาพชีวิตและสวัสดิการ",
+            ENVIRONMENT: "การจัดการสิ่งแวดล้อมและเมืองน่าอยู่",
+            OTHER: "อื่นๆ / การพัฒนาทั่วไป"
+        };
+
+        let isAdminLoggedIn = false;
+        let currentView = 'frontend';
+        let records = [];
+        let categoryChartInstance = null;
+        let provinceChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateProvinceDropdown();
+            loadStoredRecords();
+        });
+
+        function populateProvinceDropdown() {
+            const select = document.getElementById('province');
+            thaiProvinces.sort((a, b) => a.localeCompare(b, 'th')).forEach(prov => {
+                const opt = document.createElement('option');
+                opt.value = prov;
+                opt.textContent = prov;
+                select.appendChild(opt);
+            });
+        }
+
+        function loadStoredRecords() {
+            const stored = localStorage.getItem('study_tour_records_v4');
+            if (stored) {
+                records = JSON.parse(stored);
+            }
+            updateDataBadges();
+        }
+
+        function selectTopic(text) {
+            document.getElementById('topic').value = text;
+        }
+
+        function categorizeTopic(topicText) {
+            const t = topicText.toLowerCase();
+            if (t.includes('ดิจิทัล') || t.includes('e-office') || t.includes('big data') || t.includes('one stop') || t.includes('ระบบ')) {
+                return CATEGORIES.DIGITAL;
+            } else if (t.includes('ธรรมาภิบาล') || t.includes('ita') || t.includes('lpa') || t.includes('ประเมิน') || t.includes('ประชาคม')) {
+                return CATEGORIES.GOVERNANCE;
+            } else if (t.includes('ผู้สูงอายุ') || t.includes('ltc') || t.includes('เด็กเล็ก') || t.includes('โรงเรียน') || t.includes('คุณภาพชีวิต') || t.includes('สวัสดิการ')) {
+                return CATEGORIES.QUALITY_OF_LIFE;
+            } else if (t.includes('ขยะ') || t.includes('สิ่งแวดล้อม') || t.includes('ผังเมือง') || t.includes('ภูมิอากาศ')) {
+                return CATEGORIES.ENVIRONMENT;
+            }
+            return CATEGORIES.OTHER;
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const fullname = document.getElementById('fullname').value.trim();
+            const position = document.getElementById('position').value.trim();
+            const department = document.getElementById('department').value;
+            const topic = document.getElementById('topic').value.trim();
+            const province = document.getElementById('province').value;
+            const suggestion = document.getElementById('suggestion').value.trim();
+            const category = categorizeTopic(topic);
+
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+            const newRecord = {
+                id: Date.now(),
+                timestamp,
+                fullname,
+                position,
+                department,
+                topic,
+                category,
+                province,
+                suggestion: suggestion || '-'
+            };
+
+            records.unshift(newRecord);
+            localStorage.setItem('study_tour_records_v4', JSON.stringify(records));
+            updateDataBadges();
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRecord)
+            }).catch(err => console.log('Cloud Sync Error:', err));
+
+            document.getElementById('successModal').classList.remove('hidden');
+            resetForm();
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        function resetForm() {
+            document.getElementById('surveyForm').reset();
+        }
+
+        function toggleView() {
+            if (currentView === 'frontend') {
+                if (!isAdminLoggedIn) {
+                    document.getElementById('loginModal').classList.remove('hidden');
+                } else {
+                    switchView('backend');
+                }
+            } else {
+                switchView('frontend');
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('adminPassword').value;
+            if (pass === 'samnakadmin') {
+                isAdminLoggedIn = true;
+                closeLoginModal();
+                switchView('backend');
+            } else {
+                alert('รหัสผ่านไม่ถูกต้อง');
+            }
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function switchView(view) {
+            currentView = view;
+            const frontend = document.getElementById('frontendView');
+            const backend = document.getElementById('backendView');
+            const btnText = document.getElementById('viewToggleText');
+
+            if (view === 'backend') {
+                frontend.classList.add('hidden');
+                backend.classList.remove('hidden');
+                btnText.textContent = 'กลับสู่หน้าแบบฟอร์ม (Front)';
+                loadDataFromSheet();
+            } else {
+                backend.classList.add('hidden');
+                frontend.classList.remove('hidden');
+                btnText.textContent = 'เข้าสู่ระบบหลังบ้าน (Admin)';
+            }
+        }
+
+        function loadDataFromSheet() {
+            const emptyNotice = document.getElementById('emptyTableNotice');
+            if (emptyNotice) {
+                emptyNotice.innerText = 'กำลังซิงค์ข้อมูลล่าสุดจาก Google Sheets...';
+                emptyNotice.classList.remove('hidden');
+            }
+
+            fetch(SCRIPT_URL)
+                .then(res => res.json())
+                .then(response => {
+                    if (response.result === 'success' && response.data) {
+                        records = response.data;
+                        localStorage.setItem('study_tour_records_v4', JSON.stringify(records));
+                        renderAdminView();
+                    }
+                })
+                .catch(err => {
+                    console.log('Using local records due to network error', err);
+                    renderAdminView();
+                });
+        }
+
+        function switchAdminTab(tab) {
+            const dashSection = document.getElementById('adminDashboardSection');
+            const tableSection = document.getElementById('adminTableSection');
+            const checkingSection = document.getElementById('adminCheckingSection');
+            
+            const tabDash = document.getElementById('tab-dashboard');
+            const tabTable = document.getElementById('tab-table');
+            const tabChecking = document.getElementById('tab-checking');
+
+            dashSection.classList.add('hidden');
+            tableSection.classList.add('hidden');
+            checkingSection.classList.add('hidden');
+            
+            [tabDash, tabTable, tabChecking].forEach(btn => {
+                btn.classList.add('bg-white', 'text-rose-800');
+                btn.classList.remove('active');
+            });
+
+            if (tab === 'dashboard') {
+                dashSection.classList.remove('hidden');
+                tabDash.classList.add('active');
+                tabDash.classList.remove('bg-white', 'text-rose-800');
+                renderCharts();
+            } else if (tab === 'table') {
+                tableSection.classList.remove('hidden');
+                tabTable.classList.add('active');
+                tabTable.classList.remove('bg-white', 'text-rose-800');
+                renderTable();
+            } else if (tab === 'checking') {
+                checkingSection.classList.remove('hidden');
+                tabChecking.classList.add('active');
+                tabChecking.classList.remove('bg-white', 'text-rose-800');
+                renderCheckingTable();
+            }
+        }
+
+        function renderAdminView() {
+            updateKPIs();
+            renderCharts();
+            renderTable();
+            renderCheckingTable();
+            updateDataBadges();
+        }
+
+        function updateDataBadges() {
+            document.getElementById('dataCountBadge').textContent = records.length;
+        }
+
+        function updateKPIs() {
+            document.getElementById('kpiTotal').textContent = `${records.length} คน`;
+
+            if (records.length === 0) {
+                document.getElementById('kpiTopCategory').textContent = '-';
+                document.getElementById('kpiTopProvince').textContent = '-';
+                return;
+            }
+
+            const catCounts = {};
+            records.forEach(r => catCounts[r.category] = (catCounts[r.category] || 0) + 1);
+            const sortedCats = Object.entries(catCounts).sort((a,b) => b[1] - a[1]);
+            document.getElementById('kpiTopCategory').textContent = sortedCats[0] ? `${sortedCats[0][0]} (${sortedCats[0][1]})` : '-';
+
+            const provCounts = {};
+            records.forEach(r => provCounts[r.province] = (provCounts[r.province] || 0) + 1);
+            const sortedProvs = Object.entries(provCounts).sort((a,b) => b[1] - a[1]);
+            document.getElementById('kpiTopProvince').textContent = sortedProvs[0] ? `${sortedProvs[0][0]} (${sortedProvs[0][1]})` : '-';
+        }
+
+        function renderCheckingTable() {
+            const filterDept = document.getElementById('filterDeptSelect').value;
+            const tbody = document.getElementById('checkingTableBody');
+            const summaryCardsContainer = document.getElementById('deptSummaryCards');
+            tbody.innerHTML = '';
+            summaryCardsContainer.innerHTML = '';
+
+            const submittedNames = records.map(r => r.fullname.replace(/\s+/g, '').toLowerCase());
+            const departments = ["สำนักปลัด", "กองคลัง", "กองช่าง", "กองสาธารณสุข", "กองการศึกษา", "หน่วยตรวจสอบภายใน", "คณะผู้บริหาร", "หัวหน้าส่วนราชการ", "สมาชิกสภา"];
+
+            departments.forEach(dept => {
+                const staffInDept = masterStaffList.filter(s => s.department === dept);
+                const submittedInDept = staffInDept.filter(s => submittedNames.includes(s.fullname.replace(/\s+/g, '').toLowerCase()));
+                
+                const card = document.createElement('div');
+                card.className = 'soft-card p-3 bg-rose-50/40 border border-rose-100 rounded-xl text-center';
+                card.innerHTML = `
+                    <div class="text-[10px] font-bold text-rose-900 truncate">${dept}</div>
+                    <div class="text-base font-bold text-rose-700 mt-1">${submittedInDept.length} / ${staffInDept.length}</div>
+                    <div class="text-[9px] text-gray-500">คน</div>
+                `;
+                summaryCardsContainer.appendChild(card);
+            });
+
+            const filteredStaff = filterDept === 'ALL' 
+                ? masterStaffList 
+                : masterStaffList.filter(s => s.department === filterDept);
+
+            filteredStaff.forEach((staff, idx) => {
+                const matchedRecord = records.find(r => r.fullname.replace(/\s+/g, '').toLowerCase() === staff.fullname.replace(/\s+/g, '').toLowerCase());
+                const isSubmitted = !!matchedRecord;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-rose-50/40 transition-all';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-center text-gray-500">${idx + 1}</td>
+                    <td class="px-4 py-3 font-medium text-rose-900">${staff.fullname}</td>
+                    <td class="px-4 py-3 text-gray-700">${staff.department}</td>
+                    <td class="px-4 py-3 text-gray-600">${staff.position}</td>
+                    <td class="px-4 py-3 text-center">
+                        ${isSubmitted 
+                            ? '<span class="px-2.5 py-1 text-[10px] bg-emerald-100 text-emerald-800 rounded-full font-bold"><i class="fa-solid fa-check mr-1"></i> ส่งแล้ว</span>' 
+                            : '<span class="px-2.5 py-1 text-[10px] bg-gray-100 text-gray-500 rounded-full font-medium"><i class="fa-solid fa-clock mr-1"></i> ยังไม่ส่ง</span>'}
+                    </td>
+                    <td class="px-4 py-3 text-gray-500">
+                        ${isSubmitted ? `ส่งเมื่อ: ${matchedRecord.timestamp} (ไป ${matchedRecord.province})` : '<span class="text-gray-400 italic">รอกรอกข้อมูลแบบสำรวจ</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCharts() {
+            updateKPIs();
+
+            const catCounts = {
+                [CATEGORIES.DIGITAL]: 0,
+                [CATEGORIES.GOVERNANCE]: 0,
+                [CATEGORIES.QUALITY_OF_LIFE]: 0,
+                [CATEGORIES.ENVIRONMENT]: 0,
+                [CATEGORIES.OTHER]: 0
+            };
+            records.forEach(r => catCounts[r.category] = (catCounts[r.category] || 0) + 1);
+
+            const ctx1 = document.getElementById('categoryChart').getContext('2d');
+            if (categoryChartInstance) categoryChartInstance.destroy();
+
+            categoryChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['นวัตกรรมดิจิทัล', 'ธรรมาภิบาล/LPA', 'คุณภาพชีวิต/LTC', 'ขยะและสิ่งแวดล้อม', 'อื่นๆ'],
+                    datasets: [{
+                        label: 'จำนวนผู้สนใจ (คน)',
+                        data: [
+                            catCounts[CATEGORIES.DIGITAL],
+                            catCounts[CATEGORIES.GOVERNANCE],
+                            catCounts[CATEGORIES.QUALITY_OF_LIFE],
+                            catCounts[CATEGORIES.ENVIRONMENT],
+                            catCounts[CATEGORIES.OTHER]
+                        ],
+                        backgroundColor: ['#be123c', '#fb7185', '#fda4af', '#e11d48', '#9f1239'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+
+            const provCounts = {};
+            records.forEach(r => provCounts[r.province] = (provCounts[r.province] || 0) + 1);
+            const top5Provinces = Object.entries(provCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+
+            const ctx2 = document.getElementById('provinceChart').getContext('2d');
+            if (provinceChartInstance) provinceChartInstance.destroy();
+
+            provinceChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: top5Provinces.map(p => p[0]),
+                    datasets: [{
+                        label: 'จำนวนคนเสนอ',
+                        data: top5Provinces.map(p => p[1]),
+                        backgroundColor: '#fda4af',
+                        borderColor: '#be123c',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const emptyNotice = document.getElementById('emptyTableNotice');
+            tbody.innerHTML = '';
+
+            if (records.length === 0) {
+                emptyNotice.textContent = 'ยังไม่มีข้อมูลในระบบ';
+                emptyNotice.classList.remove('hidden');
+                return;
+            } else {
+                emptyNotice.classList.add('hidden');
+            }
+
+            records.forEach((r, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-rose-50/40 transition-all';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-center text-gray-500">${idx + 1}</td>
+                    <td class="px-4 py-3 text-gray-500 whitespace-nowrap">${r.timestamp}</td>
+                    <td class="px-4 py-3 font-medium text-rose-900">${r.fullname}</td>
+                    <td class="px-4 py-3 text-gray-600">${r.position}</td>
+                    <td class="px-4 py-3 text-gray-700 font-medium">${r.department || '-'}</td>
+                    <td class="px-4 py-3 text-gray-800 max-w-xs truncate">${r.topic}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-[10px] bg-rose-100 text-rose-800 rounded-full font-medium">${r.category}</span></td>
+                    <td class="px-4 py-3 font-semibold text-rose-700 whitespace-nowrap">${r.province}</td>
+                    <td class="px-4 py-3 text-gray-500 max-w-xs truncate">${r.suggestion}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="deleteRecord(${r.id})" class="text-rose-600 hover:text-rose-900 px-2 py-1">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function deleteRecord(id) {
+            if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+                records = records.filter(r => r.id !== id);
+                localStorage.setItem('study_tour_records_v4', JSON.stringify(records));
+                renderTable();
+                renderCharts();
+                renderCheckingTable();
+                updateDataBadges();
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('คำเตือน: คุณต้องการล้างข้อมูลทั้งหมดในระบบใช่หรือไม่?')) {
+                records = [];
+                localStorage.setItem('study_tour_records_v4', JSON.stringify(records));
+                renderTable();
+                renderCharts();
+                renderCheckingTable();
+                updateDataBadges();
+            }
+        }
+
+        function exportToExcel() {
+            if (records.length === 0) {
+                alert('ไม่มีข้อมูลสำหรับส่งออก');
+                return;
+            }
+
+            const exportData = records.map((r, i) => ({
+                "ลำดับ": i + 1,
+                "วันเวลาที่บันทึก": r.timestamp,
+                "ชื่อ - สกุล": r.fullname,
+                "ตำแหน่ง": r.position,
+                "สังกัด / กอง": r.department || '-',
+                "เรื่องที่ต้องการศึกษาดูงาน": r.topic,
+                "หมวดหมู่": r.category,
+                "จังหวัดที่ต้องการไป": r.province,
+                "ข้อเสนอแนะ": r.suggestion
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "ความต้องการศึกษาดูงาน");
+
+            const max_widths = [6, 18, 22, 22, 25, 35, 30, 15, 30];
+            worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+            const dateStr = new Date().toISOString().slice(0,10);
+            XLSX.writeFile(workbook, `สรุปความต้องการศึกษาดูงาน_${dateStr}.xlsx`);
+        }
+    </script>
+</body>
+</html>
