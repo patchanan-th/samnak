@@ -341,7 +341,7 @@
                             <h3 class="text-sm font-bold text-rose-900 flex items-center gap-2">
                                 <i class="fa-solid fa-user-check text-rose-700"></i> ตรวจสอบสถานะการส่งแบบสำรวจรายบุคคลแยกตามกอง
                             </h3>
-                            <p class="text-xs text-gray-500 mt-0.5">ระบบจับคู่อัจฉริยะ (รองรับกรณีผู้กรอกไม่ใส่คำนำหน้า)</p>
+                            <p class="text-xs text-gray-500 mt-0.5">ระบบจับคู่อัจฉริยะ (รองรับทั้งกรณีไม่ใส่คำนำหน้า และพิมพ์แค่ชื่อจริง)</p>
                         </div>
                         <div class="flex items-center gap-2 w-full md:w-auto">
                             <select id="filterDeptSelect" onchange="renderCheckingTable()" class="px-3.5 py-2 bg-rose-50/30 border border-rose-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-400">
@@ -766,7 +766,7 @@
             document.getElementById('kpiTopProvince').textContent = sortedProvs[0] ? `${sortedProvs[0][0]} (${sortedProvs[0][1]})` : '-';
         }
 
-        // ฟังก์ชันช่วยทำความสะอาดและตัดคำนำหน้าออกเพื่อให้จับคู่ชื่อได้แม่นยำแม้ไม่ใส่คำนำหน้า
+        // ฟังก์ชันจับคู่อัจฉริยะ: ตัดคำนำหน้า และรองรับกรณีพิมพ์แค่ชื่อจริง (เช่น สุภกิจ)
         function normalizeName(name) {
             if (!name) return "";
             let n = name.replace(/\s+/g, '').toLowerCase();
@@ -780,6 +780,16 @@
             return n;
         }
 
+        function isNameMatched(masterName, submittedName) {
+            const m = normalizeName(masterName);
+            const s = normalizeName(submittedName);
+            if (m === s) return true;
+            // ถ้าระบบส่งมาเฉพาะชื่อจริง (เช่น "สุภกิจ") แต่ในมาสเตอร์คือ "สุภกิจกั่วพานิช"
+            if (m.includes(s) && s.length >= 3) return true;
+            if (s.includes(m) && m.length >= 3) return true;
+            return false;
+        }
+
         function renderCheckingTable() {
             const filterDept = document.getElementById('filterDeptSelect').value;
             const tbody = document.getElementById('checkingTableBody');
@@ -787,12 +797,13 @@
             tbody.innerHTML = '';
             summaryCardsContainer.innerHTML = '';
 
-            const submittedNormalized = records.map(r => normalizeName(r.fullname));
             const departments = ["สำนักปลัด", "กองคลัง", "กองช่าง", "กองสาธารณสุข", "กองการศึกษา", "หน่วยตรวจสอบภายใน", "คณะผู้บริหาร", "หัวหน้าส่วนราชการ", "สมาชิกสภา"];
 
             departments.forEach(dept => {
                 const staffInDept = masterStaffList.filter(s => s.department === dept);
-                const submittedInDept = staffInDept.filter(s => submittedNormalized.includes(normalizeName(s.fullname)));
+                const submittedInDept = staffInDept.filter(staff => {
+                    return records.some(r => isNameMatched(staff.fullname, r.fullname));
+                });
                 
                 const card = document.createElement('div');
                 card.className = 'soft-card p-3 bg-rose-50/40 border border-rose-100 rounded-xl text-center';
@@ -809,8 +820,7 @@
                 : masterStaffList.filter(s => s.department === filterDept);
 
             filteredStaff.forEach((staff, idx) => {
-                const normStaff = normalizeName(staff.fullname);
-                const matchedRecord = records.find(r => normalizeName(r.fullname) === normStaff);
+                const matchedRecord = records.find(r => isNameMatched(staff.fullname, r.fullname));
                 const isSubmitted = !!matchedRecord;
 
                 const tr = document.createElement('tr');
