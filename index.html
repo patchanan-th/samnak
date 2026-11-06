@@ -990,7 +990,7 @@
             worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
 
             const dateStr = new Date().toISOString().slice(0,10);
-            XXLX.writeFile(workbook, `สรุปความต้องการศึกษาดูงาน_${dateStr}.xlsx`);
+            XLSX.writeFile(workbook, `สรุปความต้องการศึกษาดูงาน_${dateStr}.xlsx`);
         }
     </script>
 </body>
