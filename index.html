@@ -787,9 +787,7 @@
             tbody.innerHTML = '';
             summaryCardsContainer.innerHTML = '';
 
-            // ทำความสะอาดชื่อผู้ที่ส่งมาแล้วทั้งหมด (รองรับทั้งแบบมีและไม่มีคำนำหน้า)
             const submittedNormalized = records.map(r => normalizeName(r.fullname));
-
             const departments = ["สำนักปลัด", "กองคลัง", "กองช่าง", "กองสาธารณสุข", "กองการศึกษา", "หน่วยตรวจสอบภายใน", "คณะผู้บริหาร", "หัวหน้าส่วนราชการ", "สมาชิกสภา"];
 
             departments.forEach(dept => {
